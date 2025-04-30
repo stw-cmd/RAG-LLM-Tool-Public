@@ -17,6 +17,7 @@ from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from langchain.schema import Document as LC_Document
 from langchain_openai import ChatOpenAI
+# PDF loader
 from langchain_community.document_loaders import PyPDFLoader
 
 from app.extensions import db
@@ -114,7 +115,7 @@ def process_query():
         Settings
     )
 
-    # Initialise ChatOpenAI for gpt-3.5-turbo-16k
+    # Initialise ChatOpenAI for gpt-4o-mini (this can be replaced with other OpenAI models)
     llm = ChatOpenAI(
         model_name="gpt-4o-mini",
         temperature=0,
