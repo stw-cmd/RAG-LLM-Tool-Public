@@ -1,3 +1,4 @@
+# app/queries/routes.py
 import os
 import logging
 import warnings
@@ -15,7 +16,7 @@ from pydantic import PydanticDeprecatedSince211
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 from langchain.schema import Document as LC_Document
-# PDF loader
+from langchain_openai import ChatOpenAI
 from langchain_community.document_loaders import PyPDFLoader
 
 from app.extensions import db
@@ -55,12 +56,11 @@ QA_PROMPT = PromptTemplate(
     input_variables=["context", "question"]
 )
 
-# Query processing
 @query_bp.route("/query", methods=["POST"])
 @login_required
 def process_query():
     # Get and validate the question
-    question = request.form.get("question")
+    question = request.form.get("question", "").strip()
     if not question:
         flash("No question provided.")
         return redirect(url_for("dashboard"))
@@ -114,17 +114,17 @@ def process_query():
         Settings
     )
 
-    # Run the RetrievalQA chain
-    from langchain_openai import OpenAI
-
-    llm = OpenAI(
+    # Initialise ChatOpenAI for gpt-3.5-turbo-16k
+    llm = ChatOpenAI(
+        model_name="gpt-4o-mini",
         temperature=0,
-        openai_api_key=current_app.config.get("OPENAI_API_KEY")
+        openai_api_key=current_app.config["OPENAI_API_KEY"]
     )
 
     # Configure the retriever to fetch top 3 most relevant chunks
     retriever = vectorstore.as_retriever(search_kwargs={"k": 3})
 
+    # Build the RetrievalQA chain using our custom prompt
     qa_chain = RetrievalQA.from_chain_type(
         llm=llm,
         chain_type="stuff",
@@ -133,8 +133,10 @@ def process_query():
     )
 
     try:
-        # Get the answer from the chain
-        answer = qa_chain.run(question)
+        # Use the new invoke() interface instead of deprecated run()
+        result = qa_chain.invoke({"query": question})
+        # Extraction: if result is a dict, pull out the "result" key; else assume it's a string
+        answer = result.get("result") if isinstance(result, dict) else result
     except Exception as e:
         logger.error("Error during QA: %s", e)
         flash("Error processing your query. Please try again.")
@@ -158,17 +160,16 @@ def process_query():
     flash("Query processed!")
     return redirect(url_for("dashboard"))
 
-# Delete a saved query from history
 @query_bp.route("/delete_query/<int:query_id>", methods=["POST"])
 @login_required
 def delete_query(query_id):
-    # Load query history
+    # Load the query history record
     q = QueryHistory.query.get_or_404(query_id)
-    # Check if the query belongs to the current user
+    # Ensure the user owns this query
     if q.user_id != current_user.id:
         flash("Unauthorized access.")
         return redirect(url_for("dashboard"))
-    # Delete the query
+    # Delete the record
     try:
         db.session.delete(q)
         db.session.commit()
@@ -177,5 +178,4 @@ def delete_query(query_id):
         db.session.rollback()
         logger.error("Error deleting query: %s", e)
         flash("Error deleting query.")
-
     return redirect(url_for("dashboard"))
