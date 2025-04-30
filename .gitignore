@@ -1,0 +1,38 @@
+# Ignore local ChromaDB stores and uploaded docs
+chroma_db/
+uploads/
+
+# Ignore the Flask instance folder entirely
+instance/
+
+# Ignore any SQLite files
+*.db
+
+# Byte-compiled Python files
+__pycache__/
+**/__pycache__/
+*.py[cod]
+*.pyc
+
+# Python virtual environments
+.venv/
+env/
+venv/
+.env
+
+# Node / Tailwind
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Build / cache
+*.log
+.cache/
+.pip-wheel-metadata/
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
+**/.DS_Store

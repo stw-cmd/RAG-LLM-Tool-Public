@@ -1,0 +1,51 @@
+<!-- app/templates/base.html-->
+<!DOCTYPE html>
+<html lang="en" class="dark:class">  <!-- Ensure dark class toggles -->
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+
+  <!-- Prevent flash of unstyled content by immediately applying stored theme -->
+  <script>
+    (function(){
+      const stored = localStorage.getItem('theme');
+      const osDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      const useDark = stored === 'dark' || (!stored && osDark);
+      document.documentElement.classList.toggle('dark', useDark);
+    })();
+  </script>
+
+  <title>{% block title %}RAG LLM Tool{% endblock %}</title>
+  {{ font_links|safe }}
+
+  <!-- Font Awesome library for icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" crossorigin="anonymous" />
+
+  <!-- Tailwind Output (includes input.css utility classes overrides) -->
+  <link href="{{ url_for('static', filename='output.css') }}" rel="stylesheet" />
+
+  <!-- CSRF Token -->
+  <meta name="csrf-token" content="{{ csrf_token }}" />
+</head>
+<body class="font-sans antialiased bg-gray-100 dark:bg-gray-900 text-gray-800 dark:text-gray-100 min-h-screen">
+
+  {% block content %}{% endblock %}
+
+  <!-- Theme switcher -->
+  <script>
+    function setColourMode(mode) {
+      // Store or clear the theme in localStorage based on the mode
+      if (mode === 'system') {
+        localStorage.removeItem('theme');
+      } else {
+        localStorage.setItem('theme', mode);
+      }
+      // See if dark mode applies
+      const stored = localStorage.getItem('theme');
+      const osDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      // Toggle the dark class on the document element
+      document.documentElement.classList.toggle('dark', stored === 'dark' || (!stored && osDark));
+    }
+  </script>
+</body>
+</html>

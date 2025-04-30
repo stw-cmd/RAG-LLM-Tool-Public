@@ -1,0 +1,22 @@
+/* static/input.css */
+
+/* Import Tailwind v4 CSS-based config */
+@import "tailwindcss";
+
+/* Override the dark variant to look for `.dark` on any ancestor */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Custom utilities/components using the @utility directive */
+@utility {
+  .btn-primary {
+    @apply w-full text-white font-semibold px-4 py-2 rounded
+           bg-blue-600 pointer-fine:hover:bg-blue-700
+           dark:(bg-blue-500 pointer-fine:hover:bg-blue-600)
+           focus-visible:(ring-2 ring-blue-500);
+  }
+  .icon-button {
+    @apply p-2 rounded
+           hover:(bg-gray-200 dark:bg-gray-700)
+           focus-visible:(ring-2 ring-blue-500);
+  }
+}

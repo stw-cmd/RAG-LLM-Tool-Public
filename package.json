@@ -1,0 +1,33 @@
+{
+  "name": "rag-llm-tool",
+  "version": "1.0.0",
+  "main": "index.js",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "build:css": "tailwindcss -c tailwind.config.js -i ./static/input.css -o ./static/output.css --minify"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/stw-cmd/RAG-LLM-Tool.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/stw-cmd/RAG-LLM-Tool/issues"
+  },
+  "homepage": "https://github.com/stw-cmd/RAG-LLM-Tool#readme",
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.1.4",
+    "autoprefixer": "^10.4.21",
+    "postcss": "^8.5.3",
+    "postcss-import": "^16.1.0",
+    "tailwindcss": "^4.1.4"
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.4"
+  },
+  "description": ""
+}

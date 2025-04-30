@@ -1,0 +1,304 @@
+<!-- app/templates/admin/dashboard.html -->
+{% extends "base.html" %}
+{% block title %}Admin Dashboard – RAG LLM Tool{% endblock %}
+{% block content %}
+
+<!-- Navbar (same as user, no docs toggle) -->
+<nav class="relative flex items-center justify-center px-5 py-2.5 bg-white dark:bg-gray-800 shadow-md">
+  <div class="absolute left-5 font-medium text-gray-700 dark:text-gray-200 text-lg">
+    Admin Dashboard
+  </div>
+  <div class="font-serif text-2xl text-gray-900 dark:text-gray-100 px-2.5 py-1 rounded">
+    RAG LLM Tool
+  </div>
+  <div class="absolute right-5">
+    <div class="relative">
+      <button
+        id="adminUserMenuButton"
+        onclick="toggleUserMenu(event)"
+        aria-haspopup="true"
+        aria-expanded="false"
+        class="group w-10 h-10 rounded-full bg-blue-600 text-white text-lg font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+      >{{ current_user.username[0]|upper }}</button>
+      <div
+        id="adminUserDropdown"
+        class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg hidden group-focus-within:block z-50"
+        role="menu"
+        aria-label="User menu"
+      >
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+          <p class="font-semibold text-gray-800 dark:text-gray-100">{{ current_user.username }}</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ current_user.email }}</p>
+        </div>
+        <div class="flex justify-center gap-2 p-2">
+          <button
+            data-mode="system"
+            onclick="setColourMode('system')"
+            title="System mode"
+            class="icon-button p-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded focus-visible:ring-2 focus-visible:ring-blue-500"
+          ><i class="fas fa-circle-half-stroke"></i></button>
+          <button
+            data-mode="light"
+            onclick="setColourMode('light')"
+            title="Light mode"
+            class="icon-button p-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded focus-visible:ring-2 focus-visible:ring-blue-500"
+          ><i class="fas fa-sun"></i></button>
+          <button
+            data-mode="dark"
+            onclick="setColourMode('dark')"
+            title="Dark mode"
+            class="icon-button p-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded focus-visible:ring-2 focus-visible:ring-blue-500"
+          ><i class="fas fa-moon"></i></button>
+        </div>
+        <div class="p-2 text-center">
+          <a
+            href="{{ url_for('auth.logout') }}"
+            class="text-red-600 hover:underline focus-visible:ring-2 focus-visible:ring-red-400 focus-visible:outline-none"
+          >Logout</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<!-- Flash messages banner -->
+{% with messages = get_flashed_messages() %}
+  {% if messages %}
+    <div
+      id="flashQuery"
+      class="mx-6 mt-4 bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 rounded-lg p-4 flex items-start space-x-4"
+    >
+      <ul class="list-disc list-inside flex-1 space-y-1">
+        {% for msg in messages %}
+          <li>{{ msg }}</li>
+        {% endfor %}
+      </ul>
+      <button
+        onclick="document.getElementById('flashQuery').remove()"
+        class="text-blue-800 dark:text-blue-200 hover:text-blue-900 dark:hover:text-blue-100 focus:outline-none"
+        aria-label="Dismiss"
+      >
+        <i class="fas fa-times"></i>
+      </button>
+    </div>
+  {% endif %}
+{% endwith %}
+
+<div class="relative flex h-[calc(100vh-6rem)] bg-gray-100 dark:bg-gray-900">
+  <main class="flex-1 m-6 flex flex-col overflow-auto space-y-6">
+
+    <!-- Metrics Section -->
+    <section
+      aria-labelledby="metrics-heading"
+      class="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg"
+    >
+      <h2 id="metrics-heading" class="sr-only">Key metrics</h2>
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-center">
+          <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Users</h3>
+          <p class="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ total_users }}</p>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-center">
+          <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Documents</h3>
+          <p class="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ total_documents }}</p>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-center">
+          <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300">Total Queries</h3>
+          <p class="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ total_queries }}</p>
+        </div>
+        <div class="p-4 bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg text-center">
+          <h3 class="text-sm font-medium text-gray-600 dark:text-gray-300">Active Users (last 7 days)</h3>
+          <p class="mt-2 text-2xl font-semibold text-gray-900 dark:text-gray-100">{{ active_users }}</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- Graphs Section -->
+    <section
+      aria-labelledby="graphs-heading"
+      class="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg"
+    >
+      <div class="flex items-center justify-between mb-4">
+        <h2 id="graphs-heading" class="text-xl font-semibold text-gray-900 dark:text-gray-100">Performance Graphs</h2>
+        <form id="timeframe-form" method="get" action="{{ url_for('admin.admin_dashboard') }}" class="flex items-center space-x-2">
+          <label for="timeframe-select" class="text-gray-700 dark:text-gray-300">Timeframe:</label>
+          <select
+            id="timeframe-select"
+            name="timeframe"
+            onchange="this.form.submit()"
+            class="px-3 py-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
+          >
+            <option value="day"   {% if timeframe=='day'   %}selected{% endif %}>Daily</option>
+            <option value="week"  {% if timeframe=='week'  %}selected{% endif %}>Weekly</option>
+            <option value="month" {% if timeframe=='month' %}selected{% endif %}>Monthly</option>
+          </select>
+          <input type="hidden" name="q" value="{{ search_query }}">
+        </form>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow p-4 h-72">
+          <h4 class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">User Growth</h4>
+          <canvas id="userGrowthChart" class="w-full h-full"></canvas>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow p-4 h-72">
+          <h4 class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Docs Uploaded</h4>
+          <canvas id="docUploadsChart" class="w-full h-full"></canvas>
+        </div>
+        <div class="bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 rounded-lg shadow p-4 h-72">
+          <h4 class="text-sm font-medium text-gray-600 dark:text-gray-300 mb-2">Queries</h4>
+          <canvas id="queryChart" class="w-full h-full"></canvas>
+        </div>
+      </div>
+    </section>
+
+    <!-- User Lookup Section -->
+    <section
+      aria-labelledby="lookup-heading"
+      class="p-4 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg"
+    >
+      <h2 id="lookup-heading" class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">User Lookup</h2>
+      <form action="{{ url_for('admin.admin_dashboard') }}" method="get"
+            class="flex flex-col sm:flex-row sm:items-center sm:space-x-2 space-y-2 sm:space-y-0 mb-4">
+        <input
+          type="text"
+          name="q"
+          placeholder="Username or email"
+          value="{{ search_query }}"
+          class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:outline-none"
+        />
+        <input type="hidden" name="timeframe" value="{{ timeframe }}">
+        <button type="submit" class="btn-primary w-auto px-6 py-2">Search</button>
+      </form>
+
+      {% if search_query %}
+        {% if user_lookup %}
+          <div class="overflow-x-auto">
+            <table class="w-full table-auto text-sm text-left">
+              <thead class="bg-gray-200 dark:bg-gray-700">
+                <tr>
+                  <th scope="col" class="px-3 py-2">Username</th>
+                  <th scope="col" class="px-3 py-2">Email</th>
+                  <th scope="col" class="px-3 py-2 text-center">Admin?</th>
+                  <th scope="col" class="px-3 py-2 text-center">Docs</th>
+                  <th scope="col" class="px-3 py-2 text-center">Queries</th>
+                  <th scope="col" class="px-3 py-2 text-center">Joined</th>
+                  <th scope="col" class="px-3 py-2 text-center">Last Active</th>
+                  <th scope="col" class="px-3 py-2 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y dark:divide-gray-600">
+                {% for u in user_lookup %}
+                  <tr>
+                    <td class="px-3 py-2 text-gray-800 dark:text-gray-100">{{ u.username }}</td>
+                    <td class="px-3 py-2 text-gray-700 dark:text-gray-300">{{ u.email }}</td>
+                    <td class="px-3 py-2 text-center text-gray-700 dark:text-gray-300">{{ u.is_admin and 'Yes' or 'No' }}</td>
+                    <td class="px-3 py-2 text-center text-gray-700 dark:text-gray-300">{{ u.doc_count }}</td>
+                    <td class="px-3 py-2 text-center text-gray-700 dark:text-gray-300">{{ u.query_count }}</td>
+                    <td class="px-3 py-2 text-center text-gray-700 dark:text-gray-300">{{ u.date_joined }}</td>
+                    <td class="px-3 py-2 text-center text-gray-700 dark:text-gray-300">{{ u.last_activity }}</td>
+                    <td class="px-3 py-2 text-center space-x-2">
+                      {% if not u.is_admin %}
+                        <form action="{{ url_for('admin.promote_user', user_id=u.id) }}" method="post" class="inline">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                          <button type="submit" class="btn-primary w-auto py-1 px-2 text-sm">Promote</button>
+                        </form>
+                      {% elif u.is_admin and u.id == current_user.id %}
+                        <form action="{{ url_for('admin.demote_user', user_id=u.id) }}" method="post" class="inline">
+                          <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+                          <button type="submit" class="btn-primary w-auto py-1 px-2 text-sm">Demote</button>
+                        </form>
+                      {% else %}
+                        <span class="text-gray-500 dark:text-gray-400">—</span>
+                      {% endif %}
+                    </td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+        {% else %}
+          <p class="text-gray-700 dark:text-gray-300">No users found for “{{ search_query }}”.</p>
+        {% endif %}
+      {% else %}
+        <p class="text-gray-700 dark:text-gray-300">Enter a username or email above and click “Search”.</p>
+      {% endif %}
+    </section>
+
+  </main>
+</div>
+
+<!-- Chart.js + theme & menu scripts -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+  // Set up chart data from JSON
+  const userGrowthData = {{ graph_data.user_growth|tojson }};
+  const docUploadsData = {{ graph_data.doc_uploads|tojson }};
+  const queryData     = {{ graph_data.query_counts|tojson }};
+
+  // Create bar chart instance for each graph with adapted axis and legends colurs based on system colour scheme
+  function initChart(canvasId, labels, data, label) {
+    const ctx = document.getElementById(canvasId).getContext('2d');
+    const darkMode = document.documentElement.classList.contains('dark');
+    return new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ label, data, backgroundColor: 'rgba(75,192,192,0.5)', borderColor: 'rgba(75,192,192,1)', borderWidth: 1 }] },
+      options: {
+        layout: { padding: { bottom: 30 } },
+        responsive: true,
+        maintainAspectRatio: false,
+        scales: {
+          // Rotate and colour x-axis labels
+          x: { ticks: { color: darkMode ? '#ccc' : '#000', maxRotation:45, autoSkip:true }, grid:{ color: darkMode?'#555':'#e5e7eb' } },
+          y: { beginAtZero:true, ticks:{ color: darkMode?'#ccc':'#000' }, grid:{ color: darkMode?'#555':'#e5e7eb' } }
+        },
+        plugins:{ legend:{ labels:{ color: darkMode?'#ccc':'#000' } } }
+      }
+    });
+  }
+
+  // Update chart theme based on system colour scheme
+  function updateChartTheme() {
+    if (!window.adminCharts) return;
+    // Called whenever documentElement classList changes
+    const darkMode = document.documentElement.classList.contains('dark');
+    window.adminCharts.forEach(chart => {
+      // Update tick and grid colours
+      chart.options.scales.x.ticks.color = darkMode ? '#ccc' : '#000';
+      chart.options.scales.x.grid.color  = darkMode ? '#555' : '#e5e7eb';
+      chart.options.scales.y.ticks.color = darkMode ? '#ccc' : '#000';
+      chart.options.scales.y.grid.color  = darkMode ? '#555' : '#e5e7eb';
+      // Update legend colour
+      chart.options.plugins.legend.labels.color = darkMode ? '#ccc' : '#000';
+      // Update chart
+      chart.update();
+    });
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Initialise charts
+    window.adminCharts = [
+      initChart('userGrowthChart', userGrowthData.labels,   userGrowthData.values, 'New Users'),
+      initChart('docUploadsChart', docUploadsData.labels,   docUploadsData.values, 'Docs Uploaded'),
+      initChart('queryChart',     queryData.labels,         queryData.values,   'Queries')
+    ];
+    // Observe for changes to <html class="dark"> and call updateChartTheme
+    new MutationObserver(updateChartTheme)
+      .observe(document.documentElement, { attributes: true });
+  });
+
+  // Open/close user menu (same as user menu)
+  function toggleUserMenu(evt) {
+    evt.stopPropagation();
+    document.getElementById('adminUserDropdown').classList.toggle('hidden');
+  }
+
+  // Close the user menu when clicking outside of it (same as user menu)
+  window.addEventListener('click', e => {
+    const dd = document.getElementById('adminUserDropdown');
+    if (!dd.contains(e.target) && !dd.classList.contains('hidden')) {
+      dd.classList.add('hidden');
+    }
+  });
+</script>
+
+{% endblock %}

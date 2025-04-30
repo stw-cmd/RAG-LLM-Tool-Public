@@ -1,0 +1,447 @@
+<!-- app/templates/dashboard.html -->
+{% extends "base.html" %}
+{% block title %}Dashboard – RAG LLM Tool{% endblock %}
+{% block content %}
+
+<!-- Navbar -->
+<nav class="relative flex items-center justify-center px-5 py-2.5 bg-white dark:bg-gray-800 shadow-md">
+  <div class="absolute left-5 font-medium text-gray-700 dark:text-gray-200 text-lg">Dashboard</div>
+  <div class="font-serif text-2xl text-gray-900 dark:text-gray-100 px-2.5 py-1 rounded">RAG LLM Tool</div>
+  <div class="absolute right-5 flex items-center space-x-2">
+    <!-- Toggle docs pane -->
+    <button
+      onclick="toggleDocuments()"
+      aria-label="Toggle Documents Pane"
+      class="icon-button text-xl text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500"
+    >
+      <i class="fas fa-folder"></i>
+    </button>
+    <!-- User menu -->
+    <div class="relative">
+      <button
+        id="userMenuButton"
+        onclick="toggleUserMenu(event)"
+        aria-haspopup="true"
+        aria-expanded="false"
+        class="group w-10 h-10 rounded-full bg-blue-600 text-white text-lg font-semibold focus-visible:ring-2 focus-visible:ring-blue-300"
+      >{{ current_user.username[0]|upper }}</button>
+      <div
+        id="userDropdown"
+        class="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg hidden group-focus-within:block z-50"
+        role="menu"
+      >
+        <div class="p-4 border-b border-gray-200 dark:border-gray-700">
+          <p class="font-semibold text-gray-800 dark:text-gray-100">{{ current_user.username }}</p>
+          <p class="text-sm text-gray-600 dark:text-gray-400">{{ current_user.email }}</p>
+        </div>
+        <div class="flex justify-center gap-2 p-2">
+          <button data-mode="system" onclick="setColourMode('system')" title="System mode"
+                  class="mode-button p-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded focus-visible:ring-2 focus-visible:ring-blue-500">
+            <i class="fas fa-circle-half-stroke"></i>
+          </button>
+          <button data-mode="light" onclick="setColourMode('light')" title="Light mode"
+                  class="mode-button p-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded focus-visible:ring-2 focus-visible:ring-blue-500">
+            <i class="fas fa-sun"></i>
+          </button>
+          <button data-mode="dark" onclick="setColourMode('dark')" title="Dark mode"
+                  class="mode-button p-1 bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 rounded focus-visible:ring-2 focus-visible:ring-blue-500">
+            <i class="fas fa-moon"></i>
+          </button>
+        </div>
+        <div class="p-2 text-center">
+          <a href="{{ url_for('auth.logout') }}"
+             class="text-gray-700 dark:text-gray-200 hover:underline focus-visible:ring-2 focus-visible:ring-blue-500">
+            Logout
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</nav>
+
+<div class="flex h-[calc(100vh-6rem)] bg-gray-100 dark:bg-gray-900">
+
+  <!-- Query Pane -->
+  <section class="flex-1 m-6 p-6 bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col">
+    <h3 class="text-xl font-semibold mb-4 text-center text-gray-900 dark:text-gray-100">Query Section</h3>
+
+    <!-- Flash messages (only in Query pane) -->
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}
+        <div id="flashQuery"
+             class="mb-4 bg-blue-100 dark:bg-blue-900 border border-blue-200 dark:border-blue-800 text-blue-800 dark:text-blue-200 rounded-lg p-3 flex items-start">
+          <ul class="list-disc list-inside flex-1 space-y-1">
+            {% for msg in messages %}
+              <li>{{ msg }}</li>
+            {% endfor %}
+          </ul>
+          <button onclick="document.getElementById('flashQuery').remove()"
+                  class="ml-4 text-blue-800 dark:text-blue-200 hover:text-blue-900 dark:hover:text-blue-100 focus:outline-none">
+            <i class="fas fa-times"></i>
+          </button>
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    <div id="queryHistory" class="flex-1 overflow-y-auto mb-4">
+      {% if queries|length == 0 %}
+        <div class="h-full flex items-center justify-center text-gray-500 dark:text-gray-400">
+          Hello! Please upload documents or scrape a site, then ask a question.
+        </div>
+      {% else %}
+        <ul class="space-y-3">
+          {% for q in queries %}
+            <li class="bg-gray-100 dark:bg-gray-700 p-3 rounded flex justify-between items-start">
+              <div>
+                <p class="font-semibold text-gray-800 dark:text-gray-100">{{ q.question }}</p>
+                <p class="mt-1 text-gray-700 dark:text-gray-300">
+                  <span class="font-medium">Answer:</span> {{ q.answer }}
+                </p>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                  {{ q.timestamp.strftime('%Y-%m-%d %H:%M:%S') }}
+                </p>
+              </div>
+              <form action="{{ url_for('query.delete_query', query_id=q.id) }}" method="post" class="ml-4">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                <button type="submit"
+                        class="icon-button text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500"
+                        aria-label="Delete query">
+                  <i class="fas fa-times"></i>
+                </button>
+              </form>
+            </li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    </div>
+
+    <form action="{{ url_for('query.process_query') }}" method="post" class="flex space-x-3">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <input name="question" placeholder="Enter your question" required
+             class="flex-1 px-4 py-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500" />
+      <button type="submit" class="btn-primary w-auto px-6 py-2">Submit</button>
+    </form>
+  </section>
+
+  <!-- Document Pane -->
+  <aside id="docManagement" class="m-6 p-6 bg-white dark:bg-gray-800 rounded-lg shadow flex flex-col w-full lg:w-1/3">
+    <h3 class="text-xl font-semibold mb-4 text-center text-gray-900 dark:text-gray-100">Document Management</h3>
+
+    <!-- Upload / Scrape -->
+    <div class="space-y-4 mb-6">
+      <div>
+        <h4 class="font-medium mb-2 text-gray-800 dark:text-gray-200">Upload Document</h4>
+        <form action="{{ url_for('document.upload_document') }}" method="post" enctype="multipart/form-data" class="space-y-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <input type="file" name="document" required
+                 class="w-full text-sm text-gray-700 dark:text-gray-200 file:mr-4 file:rounded file:border file:border-gray-300 dark:file:border-gray-600 file:bg-gray-100 dark:file:bg-gray-700 file:px-3 file:py-2 focus-visible:ring-2 focus-visible:ring-blue-500" />
+          <button type="submit" class="btn-primary">Upload</button>
+        </form>
+      </div>
+      <div>
+        <h4 class="font-medium mb-2 text-gray-800 dark:text-gray-200">Scrape Website</h4>
+        <form action="{{ url_for('document.scrape_document') }}" method="post" class="space-y-2">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+          <input type="url" name="url" placeholder="https://example.com" required
+                 class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500" />
+          <button type="submit" class="btn-primary">Scrape</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- Uploaded Documents Pane -->
+    <div class="mb-4">
+      <div class="flex justify-between items-center mb-2">
+        <h4 class="font-medium text-gray-800 dark:text-gray-200">Uploaded Documents</h4>
+        <button onclick="toggleTable()" aria-label="Toggle documents table"
+                class="icon-button text-gray-700 dark:text-gray-200 focus-visible:ring-2 focus-visible:ring-blue-500">
+          <i id="toggleTableIcon" class="fas fa-chevron-up"></i>
+        </button>
+      </div>
+      <div id="uploadedDocumentsTable" class="overflow-y-auto max-h-64">
+        <table class="w-full table-auto text-sm text-left">
+          <thead class="bg-gray-200 dark:bg-gray-700">
+            <tr>
+              <th class="px-2 py-1">File Name</th>
+              <th class="px-2 py-1 text-center">Type</th>
+              <th class="hidden md:table-cell px-2 py-1 text-center">Uploaded</th>
+              <th class="hidden lg:table-cell px-2 py-1 text-center">Folder</th>
+              <th class="px-2 py-1 text-center">Edit</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y dark:divide-gray-600">
+            {% for doc in documents %}
+              <tr>
+                <td class="px-2 py-1 break-all text-gray-800 dark:text-gray-100">{{ doc.filename }}</td>
+                <td class="px-2 py-1 text-center text-gray-700 dark:text-gray-300">{{ doc.file_type }}</td>
+                <td class="hidden md:table-cell px-2 py-1 text-center text-gray-700 dark:text-gray-300">
+                  {{ doc.upload_date.strftime('%Y-%m-%d %H:%M:%S') }}
+                </td>
+                <td class="hidden lg:table-cell px-2 py-1 text-center">
+                  <form action="{{ url_for('document.update_folder', doc_id=doc.id) }}" method="post">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                    <select name="folder_id" onchange="this.form.submit()"
+                            class="w-full px-2 py-1 border border-gray-300 dark:border-gray-600 rounded dark:bg-gray-700 dark:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500">
+                      <option value="0" {% if not doc.folder %}selected{% endif %}>Unsorted</option>
+                      {% for folder in folders %}
+                        <option value="{{ folder.id }}" {% if doc.folder and doc.folder.id == folder.id %}selected{% endif %}>
+                          {{ folder.name }}
+                        </option>
+                      {% endfor %}
+                    </select>
+                  </form>
+                </td>
+                <td class="px-2 py-1 text-center flex justify-center items-center space-x-2">
+                  <button onclick="renameFile('{{ doc.id }}','{{ doc.filename }}')" title="Rename file"
+                          class="icon-button p-1 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <form action="{{ url_for('document.delete_document', doc_id=doc.id) }}" method="post" class="inline"
+                        onsubmit="return confirm('Are you sure you want to delete this document?');">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+                    <button type="submit" title="Delete file"
+                            class="icon-button p-1 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-gray-100 focus-visible:ring-2 focus-visible:ring-blue-500">
+                      <i class="fas fa-times"></i>
+                    </button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Folder actions -->
+    <div class="mt-auto flex space-x-2">
+      <button onclick="createFolder()" class="btn-primary flex-1 py-2">Create Folder</button>
+      <button onclick="openManageFoldersModal()" class="btn-primary flex-1 py-2">Manage Folders</button>
+    </div>
+  </aside>
+</div>
+
+<!-- Manage Folders Modal -->
+<div id="manageFoldersModal"
+    class="fixed inset-0 items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm z-50 hidden"
+    onclick="if(event.target===this) closeManageFoldersModal()">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-lg">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Manage Folders</h3>
+      <button onclick="closeManageFoldersModal()"
+              class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 text-2xl focus-visible:ring-2 focus-visible:ring-blue-500">
+        &times;
+      </button>
+    </div>
+    <div class="grid grid-cols-2 sm:grid-cols-3 gap-4">
+      {% if folders|length == 0 %}
+        <p class="col-span-full text-center text-gray-600 dark:text-gray-400">No folders available.</p>
+      {% else %}
+        {% for folder in folders %}
+          <div data-folder-id="{{ folder.id }}" data-folder-name="{{ folder.name }}"
+              onclick='openFolderOptionsModal({{ folder.id }}, "{{ folder.name }}")'
+              class="flex flex-col items-center p-4 bg-gray-100 dark:bg-gray-700 rounded hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer">
+            <i class="fas fa-folder text-4xl text-indigo-500 dark:text-indigo-400"></i>
+            <span class="mt-2 text-sm text-gray-800 dark:text-gray-200">{{ folder.name }}</span>
+          </div>
+        {% endfor %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Folder Options Modal -->
+<div id="folderOptionsModal"
+     class="fixed inset-0 items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm z-50 hidden"
+     onclick="if(event.target===this) closeFolderOptionsModal()">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-sm">
+    <div class="flex justify-between items-center mb-4">
+      <h3 id="folderOptionsTitle" class="text-xl font-semibold text-gray-900 dark:text-gray-100">Folder Options</h3>
+      <button onclick="closeFolderOptionsModal()"
+              class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 text-2xl focus-visible:ring-2 focus-visible:ring-blue-500">
+        &times;
+      </button>
+    </div>
+    <div class="space-y-3">
+      <button onclick="openRenameFolderModal()" class="btn-primary w-full py-2">Rename</button>
+      <button onclick="deleteFolderAction()" class="btn-primary w-full py-2">Delete</button>
+      <button onclick="viewFolderAction()" class="btn-primary w-full py-2">View Files</button>
+    </div>
+  </div>
+</div>
+
+<!-- Rename Folder Modal -->
+<div id="renameFolderModal"
+     class="fixed inset-0 items-center justify-center bg-black bg-opacity-50 backdrop-blur-sm z-50 hidden"
+     onclick="if(event.target===this) closeRenameFolderModal()">
+  <div class="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-xl w-full max-w-sm">
+    <div class="flex justify-between items-center mb-4">
+      <h3 class="text-xl font-semibold text-gray-900 dark:text-gray-100">Rename Folder</h3>
+      <button onclick="closeRenameFolderModal()"
+              class="text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 text-2xl focus-visible:ring-2 focus-visible:ring-blue-500">
+        &times;
+      </button>
+    </div>
+    <form id="renameFolderForm" method="POST" class="space-y-4">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}" />
+      <input type="text" name="new_name" id="renameFolderInput" placeholder="New folder name" required
+             class="w-full px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 dark:text-gray-100" />
+      <button type="submit" class="btn-primary w-full py-2">Rename</button>
+    </form>
+  </div>
+</div>
+
+<script>
+  // Open/close user menu 
+  function toggleUserMenu(evt) {
+    evt.stopPropagation();
+    document.getElementById('userDropdown').classList.toggle('hidden');
+  }
+
+  // Open/close documents pane 
+  function toggleDocuments() {
+    document.getElementById('docManagement').classList.toggle('hidden');
+  }
+
+  // Open/close documents table within the documents pane
+  function toggleTable() {
+    const tbl  = document.getElementById('uploadedDocumentsTable');
+    const icon = document.getElementById('toggleTableIcon');
+    tbl.classList.toggle('hidden');
+    icon.classList.toggle('fa-chevron-up');
+    icon.classList.toggle('fa-chevron-down');
+  }
+
+  // Rename file action 
+  // This function is called when the user clicks the rename button within the folder options modal
+  function renameFile(docId, currentName) {
+    const newName = prompt('Enter new file name (keep extension):', currentName);
+    if (!newName) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/rename_document/' + docId;
+    // New filename field
+    const nameInput = document.createElement('input');
+    nameInput.type = 'hidden';
+    nameInput.name = 'new_name';
+    nameInput.value = newName;
+    form.appendChild(nameInput);
+    // CSRF token
+    const tokenInput = document.createElement('input');
+    tokenInput.type = 'hidden';
+    tokenInput.name = 'csrf_token';
+    tokenInput.value = document.querySelector('meta[name="csrf-token"]').content;
+    form.appendChild(tokenInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  // Create folder action
+  // This function is called when the user clicks the "Create Folder" button
+  function createFolder() {
+    const name = prompt('Enter new folder name:');
+    if (!name) return;
+
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '/create_folder';
+    // Folder name field
+    const nameInput = document.createElement('input');
+    nameInput.type = 'hidden';
+    nameInput.name = 'folder_name';
+    nameInput.value = name;
+    form.appendChild(nameInput);
+    // CSRF token
+    const tokenInput = document.createElement('input');
+    tokenInput.type = 'hidden';
+    tokenInput.name = 'csrf_token';
+    tokenInput.value = document.querySelector('meta[name="csrf-token"]').content;
+    form.appendChild(tokenInput);
+
+    document.body.appendChild(form);
+    form.submit();
+  }
+
+  // Open the manage folders UI
+  function openManageFoldersModal() {
+    const m = document.getElementById('manageFoldersModal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+  }
+
+  // Close the manage folders UI
+  function closeManageFoldersModal() {
+    const m = document.getElementById('manageFoldersModal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+
+  // Open/close the folder options UI 
+  // This function is called when the user clicks on a folder in the manage folders UI
+  function openFolderOptionsModal(id,name) {
+    closeManageFoldersModal();
+    const m = document.getElementById('folderOptionsModal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    document.getElementById('folderOptionsTitle').innerText = 'Folder: ' + name;
+    window.currentFolderId = id;
+    window.currentFolderName = name;
+  }
+
+  // Close the folder options UI
+  function closeFolderOptionsModal() {
+    const m = document.getElementById('folderOptionsModal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+
+  // Open the rename folder UI 
+  // This function is called when the user clicks the "Rename" button in the folder options UI
+  function openRenameFolderModal() {
+    const m = document.getElementById('renameFolderModal');
+    m.classList.remove('hidden');
+    m.classList.add('flex');
+    document.getElementById('renameFolderForm').action = '/rename_folder/' + window.currentFolderId;
+    document.getElementById('renameFolderInput').value = window.currentFolderName;
+  }
+  // Close the rename folder UI
+  function closeRenameFolderModal() {
+    const m = document.getElementById('renameFolderModal');
+    m.classList.add('hidden');
+    m.classList.remove('flex');
+  }
+
+  // Delete folder action when clicking the "Delete" button in the folder options UI
+  function deleteFolderAction(){
+    if (!confirm('Delete this folder?')) return;
+    const f=document.createElement('form'); f.method='POST'; f.action='/delete_folder/'+window.currentFolderId;
+    const inp=document.createElement('input'); inp.type='hidden'; inp.name='csrf_token';
+    inp.value=document.querySelector('meta[name="csrf-token"]').content; f.appendChild(inp);
+    document.body.appendChild(f); f.submit();
+  }
+
+  // View folder action when clicking the "View Files" button in the folder options UI
+  function viewFolderAction(){
+    window.location.href = '/folder/' + window.currentFolderId;
+  }
+  
+  // Close the user menu when clicking outside of it
+  window.addEventListener('click', e => {
+    const ud = document.getElementById('userDropdown');
+    if (!ud.contains(e.target) && !ud.classList.contains('hidden')) {
+      ud.classList.add('hidden');
+    }
+  });
+
+  // Scroll query history to the bottom on page load
+  // This ensures that the most recent queries are visible when the page loads
+  document.addEventListener('DOMContentLoaded', () => {
+    const history = document.getElementById('queryHistory');
+    if (history) {
+      history.scrollTop = history.scrollHeight;
+    }
+  });
+</script>
+
+{% endblock %}

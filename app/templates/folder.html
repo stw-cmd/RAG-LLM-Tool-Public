@@ -1,0 +1,35 @@
+<!-- app/templates/folder.html -->
+{% extends "base.html" %}
+{% block title %}Folder: {{ folder.name }}{% endblock %}
+{% block content %}
+<div class="max-w-4xl mx-auto p-6">
+  {% with messages = get_flashed_messages() %}
+    {% if messages %}
+      <ul class="mb-4 list-disc list-inside bg-yellow-100 border border-yellow-300 p-4 rounded text-yellow-800">
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    {% endif %}
+  {% endwith %}
+  <h1 class="text-2xl font-semibold mb-4">Folder: {{ folder.name }}</h1>
+  <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+    {% if documents|length == 0 %}
+      <p class="col-span-full text-center text-gray-500">No documents in this folder.</p>
+    {% else %}
+      {% for doc in documents %}
+        <div class="flex flex-col items-center p-4 bg-white dark:bg-gray-800 rounded-lg shadow hover:bg-gray-50 dark:hover:bg-gray-700 transition">
+          <i class="fas fa-file-alt text-4xl text-blue-600 dark:text-blue-400"></i>
+          <span class="mt-2 text-gray-800 dark:text-gray-200 break-all">{{ doc.filename }}</span>
+        </div>
+      {% endfor %}
+    {% endif %}
+  </div>
+  <div class="mt-6 text-center">
+    <a href="{{ url_for('dashboard') }}"
+       class="inline-block bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded">
+      Back to Dashboard
+    </a>
+  </div>
+</div>
+{% endblock %}
