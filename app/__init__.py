@@ -106,6 +106,29 @@ def create_app():
 
     return app
 
+# CLI command to promote a user to admin (to allow for initial access to admin dashboard)
+# Only required for the first admin user, as the admin dashboard is protected by login
+# Future promotions can be done via the admin dashboard (user lookup table)
+def create_admin_command(app):
+    # Command for promoting a user to admin by email address
+    @app.cli.command("promote-admin")
+    def promote_admin():
+        email = input("Enter the email of the user to promote to admin: ").strip()
+        from app.models import User, db
+        user = User.query.filter_by(email=email).first()
+        if user:
+            # Ensure that the User model has an is_admin attribute
+            user.is_admin = True
+            try:
+                db.session.commit()
+                print(f"User '{user.username}' ({user.email}) has been promoted to admin.")
+            except Exception as e:
+                db.session.rollback()
+                print("Error updating database:", e)
+        else:
+            print("No user found with that email.")
+
+
 # Create the app instance
 if __name__ == "__main__":
     app = create_app()

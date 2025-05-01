@@ -99,6 +99,18 @@ python run.py
 
 Then open <http://127.0.0.1:5500> in your browser.
 
+### 7. Promoting a user to admin
+
+By default, newly registered users will not have admin privileges (boolean column 'is_admin' set to false)
+After running the python file `run.py`, run call in terminal: 
+
+```bash
+flash promote-admin
+```
+Followed by entering the email of the user to promote to admin.
+
+This method of promotion is only required for the first admin user, as the admin dashboard is protected by login. Future promotions can be done via the admin dashboard (user lookup table).
+
 ## Project Structure
 
 ```
@@ -143,5 +155,3 @@ pytest
 ```
 
 This code and associated materials are provided solely for assessment purposes.
-
-
