@@ -39,7 +39,7 @@ A Flask-based web application for **Retrieval-Augmented Generation** (RAG) that 
 ### 1. Clone the repository
 
 ```bash
-git clone https://github.com/your-org/RAG-LLM-Tool.git
+git clone https://github.com/stw-cmd/RAG-LLM-Tool.git
 cd RAG-LLM-Tool
 ```
 
