@@ -23,7 +23,7 @@ def login(client, username, password):
 def patch_qa(monkeypatch):
     from langchain.chains import RetrievalQA
     class FakeQAChain:
-        def run(self, question):
+        def invoke(self, question):
             return "Fake answer."
     monkeypatch.setattr(RetrievalQA, "from_chain_type", lambda **kwargs: FakeQAChain())
 
