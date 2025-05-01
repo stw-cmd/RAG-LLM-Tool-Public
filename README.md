@@ -105,6 +105,8 @@ By default, newly registered users will not have admin privileges (boolean colum
 After running the python file `run.py`, run call in terminal: 
 
 ```bash
+export FLASK_APP=run:app
+export FLASK_ENV=development
 flash promote-admin
 ```
 Followed by entering the email of the user to promote to admin.
