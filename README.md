@@ -13,7 +13,7 @@ A Flask-based web application for **Retrieval-Augmented Generation** (RAG) that 
 - **Query Interface**: Ask questions and get answers powered by an LLM + retrieval from your own documents. History of Q&A is saved.
 - **Folder Organisation**: Create, rename, delete folders and assign documents to them.
 - **Admin Dashboard**: Site-wide metrics, user lookup, promote/demote admin roles, charts for user growth, documents, and queries.
-- **Dark/Light Themes**: User-selectable color modes.
+- **Dark/Light Themes**: User-selectable colour modes.
 
 ## Tech Stack
 
