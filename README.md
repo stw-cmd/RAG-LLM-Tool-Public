@@ -101,11 +101,10 @@ Then open <http://127.0.0.1:5500> in your browser.
 
 ### 7. Promoting a user to admin
 
-By default, newly registered users will not have admin privileges (boolean column 'is_admin' set to false)
-After running the python file `run.py`, run call in terminal: 
+By default, newly registered users will not have admin privileges (boolean column 'is_admin' set to false). To access the admin dashboard, promote a registered user to admin:
 
 ```bash
-export FLASK_APP=run:app
+export FLASK_APP=run.py
 export FLASK_ENV=development
 flash promote-admin
 ```
