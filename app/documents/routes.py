@@ -260,3 +260,31 @@ def delete_document(doc_id):
     except Exception as e:
         db.session.rollback(); logger.error('Error deleting document from DB: %s',e); flash('Error deleting document.')
     return redirect(url_for('dashboard'))
+
+@document_bp.route('/rename_document/<int:doc_id>', methods=['POST'])
+@login_required
+def rename_document(doc_id):
+    d = UploadedDocument.query.get_or_404(doc_id)
+    if d.user_id != current_user.id:
+        flash('Unauthorised access.')
+        return redirect(url_for('dashboard'))
+
+    # Get the new name from form data and stripping any whitespace
+    new_name = request.form.get('new_name', '').strip()
+    if not new_name:
+        flash('New filename cannot be empty.')
+        return redirect(url_for('dashboard'))
+
+    old_path = os.path.join('uploads', str(current_user.id), d.filename)
+    new_path = os.path.join('uploads', str(current_user.id), new_name)
+    try:
+        # Rename the file on the server's file system and update db record
+        os.rename(old_path, new_path)
+        d.filename = new_name
+        db.session.commit()
+        flash('File renamed successfully!')
+    except Exception as e:
+        db.session.rollback()
+        logger.error('Error renaming file: %s', e)
+        flash('Error renaming file.')
+    return redirect(url_for('dashboard'))
