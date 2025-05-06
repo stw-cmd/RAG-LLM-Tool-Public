@@ -1,6 +1,8 @@
 # app/__init__.py
+
 import os
 import logging
+from logging.config import dictConfig
 from datetime import datetime
 from flask import Flask, render_template, url_for
 from flask_login import LoginManager, current_user, login_required
@@ -17,12 +19,46 @@ from .documents.routes import document_bp
 from .queries.routes   import query_bp
 from .admin.routes     import admin_bp
 
+# Configure a rotating file logger
+def configure_logging():
+    # create logs folder if missing
+    os.makedirs('logs', exist_ok=True)  
+    
+    # Use dictConfig to set up handlers, formatters and root logger
+    dictConfig({
+        'version': 1,
+        'formatters': {
+            'default': {
+                'format': '[%(asctime)s] %(levelname)s in %(module)s: %(message)s',
+            },
+        },
+        'handlers': {
+            # Rotate logs each day at midnight, keep 7 backups
+            'file': {
+                'class': 'logging.handlers.TimedRotatingFileHandler',
+                'when': 'midnight',
+                'interval': 1,
+                'backupCount': 7,
+                'filename': os.path.join('logs', 'app.log'),
+                'formatter': 'default',
+                'encoding': 'utf-8'
+            },
+        },
+        'root': {
+            'level': 'INFO',
+            'handlers': ['file']
+        }
+    })
+
 # Logging config
 logger = logging.getLogger(__name__)
 logging.basicConfig(level=logging.INFO)
 
 # Configure Flask app
 def create_app():
+    # Configure logging before creating the Flask app to avoid handler
+    configure_logging()
+
     # Determine directories
     here = os.path.dirname(__file__) 
     project_root = os.path.abspath(os.path.join(here, os.pardir)) 
@@ -135,4 +171,3 @@ if __name__ == "__main__":
     with app.app_context():
         db.create_all()
     app.run(debug=True, port=5500)
-    # In production, use a WSGI server + reverse proxy

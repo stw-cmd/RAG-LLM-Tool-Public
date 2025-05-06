@@ -43,7 +43,10 @@ def upload_document():
     os.makedirs(user_dir, exist_ok=True)
     path = os.path.join(user_dir, file.filename)
 
-    # Save the file to the user's directory
+    # Timer for performance measurement
+    from time import perf_counter 
+    start = perf_counter()
+     # Save the file to the user's directory
     try:
         file.save(path)
     except Exception as e:
@@ -101,8 +104,9 @@ def upload_document():
         logger.error('Error processing document: %s', e)
         flash('Document uploaded, but processing failed.')
         return redirect(url_for('dashboard'))
-    # Notify user of success
-    flash('Document uploaded and processed successfully!')
+    # ───── End timing; notify user of success and elapsed time ─────
+    duration = perf_counter() - start
+    flash(f'Document uploaded and processed successfully in {duration:.2f}s', 'success')
     return redirect(url_for('dashboard'))
 
 # Scrape Website
